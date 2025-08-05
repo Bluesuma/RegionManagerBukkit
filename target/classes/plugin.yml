@@ -1,0 +1,19 @@
+name: RegionManagerBukkit
+version: '1.0.0'
+main: com.regionmanager.RegionManagerPlugin
+api-version: '1.20'
+authors: [RegionManager]
+description: Плагин для распределения игроков по регионам для оптимизации TPS
+website: https://github.com/regionmanager/RegionManagerBukkit
+commands:
+  region:
+    description: Команды управления регионами
+    usage: /region [info|reload|stats]
+    permission: regionmanager.admin
+permissions:
+  regionmanager.admin:
+    description: Доступ к административным командам
+    default: op
+  regionmanager.info:
+    description: Просмотр информации о регионах
+    default: true 

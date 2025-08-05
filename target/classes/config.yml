@@ -1,0 +1,85 @@
+# RegionManager Configuration
+# Конфигурация плагина управления регионами
+
+# Основные настройки
+general:
+  # Включить/выключить плагин
+  enabled: true
+  # Режим отладки
+  debug: false
+
+# Настройки регионов
+regions:
+  # Размер региона в блоках (радиус от центра)
+  size: 512
+  # Максимальное количество игроков в регионе
+  max-players-per-region: 20
+  # Расстояние проверки смены региона (в блоках)
+  check-distance: 64
+  # Автоматическое создание регионов при перемещении игроков
+  auto-create: true
+  # Объединение близких регионов
+  merge-regions: true
+  # Минимальное расстояние между центрами регионов для объединения
+  merge-distance: 256
+
+# Настройки производительности
+performance:
+  # Целевой TPS
+  target-tps: 20.0
+  # Минимальный TPS перед экстренной оптимизацией
+  min-tps: 15.0
+  # Интервал проверки TPS (в тиках)
+  tps-check-interval: 100
+  # Принудительная выгрузка при низком TPS
+  force-unload-on-low-tps: true
+  # Автоматическая оптимизация
+  auto-optimization: true
+  # Интервал оптимизации (в тиках)
+  optimization-interval: 600
+
+# Настройки загрузки чанков
+chunk-loading:
+  # Максимальный радиус загрузки чанков вокруг игрока
+  max-view-distance: 4
+  # Задержка между загрузкой чанков (в миллисекундах)
+  chunk-load-delay: 10
+  # Асинхронная загрузка чанков
+  async-chunk-loading: true
+  # Максимальное количество чанков в одной партии
+  max-chunks-per-batch: 16
+
+# Настройки логирования
+logging:
+  # Общее логирование
+  enabled: true
+  # Логирование производительности
+  performance-metrics: true
+  # Логирование перемещений игроков
+  player-movements: false
+  # Логирование операций с регионами
+  region-operations: true
+  # Логирование загрузки чанков
+  chunk-loading: true
+  # Уровень детализации логов (DEBUG, INFO, WARN, ERROR)
+  level: INFO
+
+# Настройки отладки
+debug:
+  # Показывать информацию о регионах игрокам
+  show-region-info: false
+  # Показывать границы регионов
+  show-region-borders: false
+  # Детальное логирование
+  verbose-logging: false
+
+# Настройки команд
+commands:
+  # Разрешить команду /region
+  region-command: true
+  # Разрешить команду /region info
+  region-info: true
+  # Разрешить команду /region list
+  region-list: true
+  # Разрешить команду /region optimize
+  region-optimize: true 
