@@ -2,6 +2,8 @@ package com.regionmanager.commands;
 
 import com.regionmanager.RegionManagerPlugin;
 import com.regionmanager.region.Region;
+import com.regionmanager.prediction.MovementPredictor;
+import com.regionmanager.prediction.PlayerMovementData;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
@@ -61,6 +63,40 @@ public class RegionCommand implements CommandExecutor, TabCompleter {
             case "debug":
                 toggleDebug(sender);
                 break;
+            case "create":
+                if (args.length > 1) {
+                    createRegionForPlayer(sender, args[1]);
+                } else if (sender instanceof Player) {
+                    createRegionForPlayer(sender, sender.getName());
+                } else {
+                    sender.sendMessage(ChatColor.RED + "Использование: /region create [игрок]");
+                }
+                break;
+            case "force":
+                if (args.length > 1) {
+                    createForcedRegionForPlayer(sender, args[1]);
+                } else if (sender instanceof Player) {
+                    createForcedRegionForPlayer(sender, sender.getName());
+                } else {
+                    sender.sendMessage(ChatColor.RED + "Использование: /region force [игрок]");
+                }
+                break;
+            case "predict":
+                if (args.length > 1) {
+                    showPredictionInfo(sender, args[1]);
+                } else if (sender instanceof Player) {
+                    showPredictionInfo(sender, sender.getName());
+                } else {
+                    sender.sendMessage(ChatColor.RED + "Использование: /region predict [игрок]");
+                }
+                break;
+            case "unload":
+                if (args.length > 1) {
+                    forceUnloadRegion(sender, args[1]);
+                } else {
+                    sender.sendMessage(ChatColor.RED + "Использование: /region unload <регион>");
+                }
+                break;
             default:
                 showHelp(sender);
                 break;
@@ -81,6 +117,10 @@ public class RegionCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.YELLOW + "/region optimize " + ChatColor.WHITE + "- Принудительная оптимизация");
         sender.sendMessage(ChatColor.YELLOW + "/region reload " + ChatColor.WHITE + "- Перезагрузить конфигурацию");
         sender.sendMessage(ChatColor.YELLOW + "/region debug " + ChatColor.WHITE + "- Переключить отладку");
+        sender.sendMessage(ChatColor.YELLOW + "/region create [игрок] " + ChatColor.WHITE + "- Принудительно создать регион");
+        sender.sendMessage(ChatColor.YELLOW + "/region force [игрок] " + ChatColor.WHITE + "- Создать принудительный регион");
+        sender.sendMessage(ChatColor.YELLOW + "/region predict [игрок] " + ChatColor.WHITE + "- Показать предсказания движения");
+        sender.sendMessage(ChatColor.YELLOW + "/region unload <регион> " + ChatColor.WHITE + "- Принудительно выгрузить регион");
     }
     
     /**
@@ -211,6 +251,120 @@ public class RegionCommand implements CommandExecutor, TabCompleter {
             (currentDebug ? "отключена" : "включена"));
     }
     
+    /**
+     * Принудительно создать регион для игрока
+     */
+    private void createRegionForPlayer(CommandSender sender, String playerName) {
+        if (!sender.hasPermission("regionmanager.admin")) {
+            sender.sendMessage(ChatColor.RED + "У вас нет прав для выполнения этой команды");
+            return;
+        }
+
+        Player targetPlayer = plugin.getServer().getPlayer(playerName);
+        if (targetPlayer == null) {
+            sender.sendMessage(ChatColor.RED + "Игрок " + playerName + " не найден");
+            return;
+        }
+
+        Region region = plugin.getRegionManager().findOrCreateRegionForPlayer(targetPlayer);
+        if (region != null) {
+            sender.sendMessage(ChatColor.GREEN + "Регион для игрока " + playerName + " создан: " + region.getId());
+        } else {
+            sender.sendMessage(ChatColor.RED + "Не удалось создать регион для игрока " + playerName);
+        }
+    }
+
+    /**
+     * Принудительно создать регион для игрока
+     */
+    private void createForcedRegionForPlayer(CommandSender sender, String playerName) {
+        if (!sender.hasPermission("regionmanager.admin")) {
+            sender.sendMessage(ChatColor.RED + "У вас нет прав для выполнения этой команды");
+            return;
+        }
+
+        Player targetPlayer = plugin.getServer().getPlayer(playerName);
+        if (targetPlayer == null) {
+            sender.sendMessage(ChatColor.RED + "Игрок " + playerName + " не найден");
+            return;
+        }
+
+        Region region = plugin.getRegionManager().findOrCreateRegionForPlayer(targetPlayer);
+        if (region != null) {
+            region.setForcedRegion(true);
+            sender.sendMessage(ChatColor.GREEN + "Принудительный регион для игрока " + playerName + " создан: " + region.getId());
+        } else {
+            sender.sendMessage(ChatColor.RED + "Не удалось создать регион для игрока " + playerName);
+        }
+    }
+
+    /**
+     * Показать информацию о предсказаниях для игрока
+     */
+    private void showPredictionInfo(CommandSender sender, String playerName) {
+        if (!sender.hasPermission("regionmanager.admin")) {
+            sender.sendMessage(ChatColor.RED + "У вас нет прав для выполнения этой команды");
+            return;
+        }
+
+        Player targetPlayer = plugin.getServer().getPlayer(playerName);
+        if (targetPlayer == null) {
+            sender.sendMessage(ChatColor.RED + "Игрок " + playerName + " не найден");
+            return;
+        }
+
+        MovementPredictor predictor = plugin.getMovementPredictor();
+        if (predictor == null) {
+            sender.sendMessage(ChatColor.RED + "Система предиктов не инициализирована");
+            return;
+        }
+
+        PlayerMovementData movementData = predictor.getPlayerMovementData(targetPlayer);
+        if (movementData == null) {
+            sender.sendMessage(ChatColor.YELLOW + "Нет данных о движении для игрока " + playerName);
+            return;
+        }
+
+        Location predictedLocation = predictor.getPredictedLocation(targetPlayer);
+        
+        sender.sendMessage(ChatColor.GOLD + "=== Предсказания для " + playerName + " ===");
+        sender.sendMessage(ChatColor.YELLOW + "Средняя скорость: " + ChatColor.WHITE + 
+            String.format("%.2f", movementData.getAverageSpeed()) + " блоков/сек");
+        sender.sendMessage(ChatColor.YELLOW + "Последняя скорость: " + ChatColor.WHITE + 
+            String.format("%.2f", movementData.getLastSpeed()) + " блоков/сек");
+        sender.sendMessage(ChatColor.YELLOW + "Движется: " + ChatColor.WHITE + 
+            (movementData.isMoving() ? "Да" : "Нет"));
+        sender.sendMessage(ChatColor.YELLOW + "Предсказанная позиция: " + ChatColor.WHITE + 
+            String.format("%.1f, %.1f, %.1f", predictedLocation.getX(), predictedLocation.getY(), predictedLocation.getZ()));
+        sender.sendMessage(ChatColor.YELLOW + "Размер истории: " + ChatColor.WHITE + movementData.getHistorySize());
+    }
+
+    /**
+     * Принудительно выгрузить регион
+     */
+    private void forceUnloadRegion(CommandSender sender, String regionId) {
+        if (!sender.hasPermission("regionmanager.admin")) {
+            sender.sendMessage(ChatColor.RED + "У вас нет прав для выполнения этой команды");
+            return;
+        }
+
+        Map<String, Region> regions = plugin.getRegionManager().getRegions();
+        Region region = regions.get(regionId);
+        
+        if (region == null) {
+            sender.sendMessage(ChatColor.RED + "Регион " + regionId + " не найден");
+            return;
+        }
+
+        if (region.getPlayerCount() > 0) {
+            sender.sendMessage(ChatColor.RED + "Нельзя выгрузить регион с игроками");
+            return;
+        }
+
+        region.forceUnload();
+        sender.sendMessage(ChatColor.GREEN + "Регион " + regionId + " принудительно выгружен");
+    }
+
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> completions = new ArrayList<>();

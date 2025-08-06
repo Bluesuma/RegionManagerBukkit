@@ -55,11 +55,25 @@ public class RegionManager {
         
         // Сначала попробуем найти существующий регион
         Region existingRegion = findNearestRegion(playerLocation);
+        
+        // Проверить, подходит ли найденный регион
         if (existingRegion != null && existingRegion.canAcceptPlayers()) {
-            return existingRegion;
+            // Проверить, не слишком ли далеко игрок от центра региона
+            double distanceToCenter = existingRegion.distanceToCenter(playerLocation);
+            int maxDistance = regionSize / 2; // Половина размера региона
+            
+            if (distanceToCenter <= maxDistance) {
+                logger.debug("Игрок " + player.getName() + " остается в регионе " + existingRegion.getId() + 
+                    " (расстояние до центра: " + String.format("%.1f", distanceToCenter) + " блоков)");
+                return existingRegion;
+            } else {
+                logger.info("Игрок " + player.getName() + " слишком далеко от региона " + existingRegion.getId() + 
+                    " (расстояние: " + String.format("%.1f", distanceToCenter) + " > " + maxDistance + " блоков)");
+            }
         }
         
-        // Если нет подходящего региона, создаем новый
+        // Если нет подходящего региона или игрок слишком далеко, создаем новый
+        logger.info("Создание нового региона для игрока " + player.getName() + " в " + playerLocation);
         return createNewRegion(playerLocation);
     }
     
@@ -80,6 +94,11 @@ public class RegionManager {
                 minDistance = distance;
                 nearestRegion = region;
             }
+        }
+        
+        if (nearestRegion != null) {
+            logger.debug("Найден ближайший регион " + nearestRegion.getId() + 
+                " на расстоянии " + String.format("%.1f", minDistance) + " блоков");
         }
         
         return nearestRegion;
@@ -123,13 +142,46 @@ public class RegionManager {
         // Проверить, не слишком ли близко к другим регионам
         Location candidateCenter = new Location(world, regionX, 64, regionZ);
         
+        // Проверить расстояние до существующих регионов
+        boolean tooClose = false;
         for (Region existingRegion : regions.values()) {
-            if (existingRegion.getCenter().distance(candidateCenter) < minDistanceBetweenRegions) {
-                // Найти новое место
-                int offset = minDistanceBetweenRegions;
-                candidateCenter = new Location(world, regionX + offset, 64, regionZ + offset);
-                break;
+            if (existingRegion.isActive()) {
+                double distance = existingRegion.getCenter().distance(candidateCenter);
+                if (distance < minDistanceBetweenRegions) {
+                    tooClose = true;
+                    logger.debug("Кандидат центр " + candidateCenter + " слишком близко к региону " + 
+                        existingRegion.getId() + " (расстояние: " + String.format("%.1f", distance) + ")");
+                    break;
+                }
             }
+        }
+        
+        // Если слишком близко, найти новое место
+        if (tooClose) {
+            // Попробуем несколько вариантов смещения
+            int[] offsets = {regionSize, regionSize * 2, -regionSize, -regionSize * 2};
+            for (int offset : offsets) {
+                Location newCenter = new Location(world, regionX + offset, 64, regionZ + offset);
+                boolean valid = true;
+                
+                for (Region existingRegion : regions.values()) {
+                    if (existingRegion.isActive()) {
+                        double distance = existingRegion.getCenter().distance(newCenter);
+                        if (distance < minDistanceBetweenRegions) {
+                            valid = false;
+                            break;
+                        }
+                    }
+                }
+                
+                if (valid) {
+                    logger.debug("Найден подходящий центр региона: " + newCenter);
+                    return newCenter;
+                }
+            }
+            
+            // Если не удалось найти подходящее место, используем исходное
+            logger.warn("Не удалось найти подходящий центр региона, используем исходное место: " + candidateCenter);
         }
         
         return candidateCenter;

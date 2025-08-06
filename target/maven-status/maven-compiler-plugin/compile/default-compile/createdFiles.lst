@@ -1,9 +1,12 @@
+com\regionmanager\prediction\PlayerMovementData.class
 com\regionmanager\utils\Logger.class
-com\regionmanager\commands\RegionCommand.class
 com\regionmanager\managers\PerformanceManager.class
-com\regionmanager\region\Region$1.class
-com\regionmanager\listeners\PlayerListener.class
+com\regionmanager\prediction\MovementPredictor$1.class
 com\regionmanager\managers\RegionManager.class
 com\regionmanager\managers\PerformanceManager$1.class
-com\regionmanager\region\Region.class
+com\regionmanager\prediction\PlayerMovementData$MovementSample.class
+com\regionmanager\prediction\MovementPredictor.class
 com\regionmanager\RegionManagerPlugin.class
+com\regionmanager\commands\RegionCommand.class
+com\regionmanager\listeners\PlayerListener.class
+com\regionmanager\region\Region.class

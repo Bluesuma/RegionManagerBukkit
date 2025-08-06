@@ -4,6 +4,7 @@ import com.regionmanager.commands.RegionCommand;
 import com.regionmanager.listeners.PlayerListener;
 import com.regionmanager.managers.RegionManager;
 import com.regionmanager.managers.PerformanceManager;
+import com.regionmanager.prediction.MovementPredictor;
 import com.regionmanager.utils.Logger;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -16,6 +17,7 @@ public class RegionManagerPlugin extends JavaPlugin {
     private static RegionManagerPlugin instance;
     private RegionManager regionManager;
     private PerformanceManager performanceManager;
+    private MovementPredictor movementPredictor;
     private Logger logger;
     
     @Override
@@ -64,6 +66,9 @@ public class RegionManagerPlugin extends JavaPlugin {
             
             // Инициализация менеджера регионов
             regionManager = new RegionManager(this);
+            
+            // Инициализация системы предиктов движения
+            movementPredictor = new MovementPredictor(this);
             
             logger.info("Менеджеры инициализированы успешно");
         } catch (Exception e) {
@@ -115,6 +120,13 @@ public class RegionManagerPlugin extends JavaPlugin {
      */
     public PerformanceManager getPerformanceManager() {
         return performanceManager;
+    }
+    
+    /**
+     * Получить систему предиктов движения
+     */
+    public MovementPredictor getMovementPredictor() {
+        return movementPredictor;
     }
     
     /**

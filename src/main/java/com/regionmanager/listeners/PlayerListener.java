@@ -2,6 +2,7 @@ package com.regionmanager.listeners;
 
 import com.regionmanager.RegionManagerPlugin;
 import com.regionmanager.region.Region;
+import com.regionmanager.prediction.MovementPredictor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -14,11 +15,12 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 
 /**
  * Слушатель событий игроков
- * Управляет перемещением игроков между регионами
+ * Управляет перемещением игроков между регионами с поддержкой предиктов
  */
 public class PlayerListener implements Listener {
     
     private final RegionManagerPlugin plugin;
+    private final MovementPredictor movementPredictor;
     private final int regionCheckDistance;
     
     /**
@@ -26,6 +28,7 @@ public class PlayerListener implements Listener {
      */
     public PlayerListener(RegionManagerPlugin plugin) {
         this.plugin = plugin;
+        this.movementPredictor = plugin.getMovementPredictor();
         // Используем настройку из конфигурации для расстояния проверки
         this.regionCheckDistance = plugin.getConfig().getInt("regions.check-distance", 64);
     }
@@ -54,6 +57,11 @@ public class PlayerListener implements Listener {
     @EventHandler(priority = EventPriority.NORMAL)
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
+        
+        // Очистить данные движения игрока
+        if (movementPredictor != null) {
+            movementPredictor.onPlayerQuit(player);
+        }
         
         // Удалить игрока из региона
         plugin.getRegionManager().removePlayerFromRegion(player);
@@ -96,8 +104,29 @@ public class PlayerListener implements Listener {
             return;
         }
         
-        // Принудительно пересчитать регион при телепортации
-        handleRegionChange(player, to);
+        // При телепортации всегда принудительно пересчитываем регион
+        plugin.getPluginLogger().info("Игрок " + player.getName() + " телепортирован в " + to);
+        
+        // Удалить игрока из текущего региона
+        Region currentRegion = plugin.getRegionManager().getPlayerRegion(player);
+        if (currentRegion != null) {
+            plugin.getRegionManager().removePlayerFromRegion(player);
+            plugin.getPluginLogger().debug("Игрок " + player.getName() + " удален из региона " + currentRegion.getId());
+        }
+        
+        // Найти или создать новый регион
+        Region newRegion = plugin.getRegionManager().findOrCreateRegionForPlayer(player);
+        if (newRegion != null) {
+            plugin.getRegionManager().addPlayerToRegion(player, newRegion);
+            
+            if (plugin.getConfig().getBoolean("debug.show-region-info", false)) {
+                player.sendMessage("§aТелепортация: вы в регионе " + newRegion.getId());
+            }
+            
+            plugin.getPluginLogger().info("Игрок " + player.getName() + " телепортирован в регион " + newRegion.getId());
+        } else {
+            plugin.getPluginLogger().error("Не удалось создать регион для игрока " + player.getName() + " при телепортации");
+        }
     }
     
     /**
