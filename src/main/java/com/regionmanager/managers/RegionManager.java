@@ -93,7 +93,10 @@ public class RegionManager {
             int checkDistance = plugin.getConfig().getInt("regions.check-distance", 128);
             
             // Если игрок в пределах разумного расстояния от региона
-            if (distance <= (regionRadius + checkDistance) && distance < minDistance) {
+            // Уменьшаем максимальное расстояние для более точного поиска
+            int maxAcceptableDistance = Math.min(regionRadius + checkDistance, regionRadius * 2);
+            
+            if (distance <= maxAcceptableDistance && distance < minDistance) {
                 minDistance = distance;
                 nearestRegion = region;
                 logger.debug("Найден подходящий регион " + region.getId() + 

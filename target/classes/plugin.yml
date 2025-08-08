@@ -1,5 +1,5 @@
 name: RegionManagerBukkit
-version: '1.0.7'
+version: '1.0.8'
 main: com.regionmanager.RegionManagerPlugin
 api-version: '1.20'
 authors: [RegionManager]

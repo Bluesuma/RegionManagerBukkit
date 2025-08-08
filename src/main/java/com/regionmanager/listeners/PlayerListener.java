@@ -140,8 +140,10 @@ public class PlayerListener implements Listener {
             return;
         }
         
-        // Всегда проверяем смену региона при движении
-        handleRegionChange(player, to);
+        // Проверить, нужно ли проверять смену региона
+        if (shouldCheckRegionChange(from, to)) {
+            handleRegionChange(player, to);
+        }
     }
     
     /**
@@ -185,9 +187,45 @@ public class PlayerListener implements Listener {
      * Проверить, нужно ли проверять смену региона
      */
     private boolean shouldCheckRegionChange(Location from, Location to) {
-        // Проверяем чаще для более точного создания регионов
+        // Проверяем расстояние между позициями
         double distance = from.distance(to);
-        return distance >= regionCheckDistance;
+        
+        // Если игрок переместился на значительное расстояние, проверяем смену региона
+        if (distance >= regionCheckDistance) {
+            plugin.getPluginLogger().debug("Игрок переместился на " + String.format("%.1f", distance) + 
+                " блоков, проверяем смену региона");
+            return true;
+        }
+        
+        // Также проверяем, если игрок находится близко к границе региона
+        // Найдем игрока по локации (упрощенная логика)
+        Player player = null;
+        for (Player p : from.getWorld().getPlayers()) {
+            if (p.getLocation().getBlockX() == from.getBlockX() && 
+                p.getLocation().getBlockZ() == from.getBlockZ()) {
+                player = p;
+                break;
+            }
+        }
+        
+        if (player != null) {
+            Region currentRegion = plugin.getRegionManager().getPlayerRegion(player);
+            if (currentRegion != null) {
+                // Проверим, не приближается ли игрок к границе региона
+                int regionRadius = currentRegion.getSize() / 2;
+                double distanceToCenter = currentRegion.distanceToCenter(to);
+                
+                // Если игрок приближается к границе региона (в пределах 32 блоков от границы)
+                if (distanceToCenter >= (regionRadius - 32)) {
+                    plugin.getPluginLogger().debug("Игрок приближается к границе региона " + currentRegion.getId() + 
+                        " (расстояние до центра: " + String.format("%.1f", distanceToCenter) + 
+                        ", радиус региона: " + regionRadius + ")");
+                    return true;
+                }
+            }
+        }
+        
+        return false;
     }
     
     /**
@@ -227,12 +265,14 @@ public class PlayerListener implements Listener {
         // Подробная отладочная информация
         plugin.getPluginLogger().debug("=== Проверка смены региона для " + player.getName() + " ===");
         plugin.getPluginLogger().debug("Позиция игрока: " + newLocation.getBlockX() + ", " + newLocation.getBlockZ());
+        plugin.getPluginLogger().debug("Мир: " + newLocation.getWorld().getName());
         
         if (currentRegion != null) {
             plugin.getPluginLogger().debug("Текущий регион: " + currentRegion.getId());
             plugin.getPluginLogger().debug("Центр региона: " + currentRegion.getCenter().getBlockX() + ", " + currentRegion.getCenter().getBlockZ());
             plugin.getPluginLogger().debug("Размер региона: " + currentRegion.getSize() + " блоков");
             plugin.getPluginLogger().debug("Игрок в регионе: " + currentRegion.contains(newLocation));
+            plugin.getPluginLogger().debug("Расстояние до центра: " + String.format("%.1f", currentRegion.distanceToCenter(newLocation)));
         } else {
             plugin.getPluginLogger().debug("У игрока нет текущего региона");
         }
@@ -296,9 +336,24 @@ public class PlayerListener implements Listener {
         // Если не найден содержащий регион, ищем ближайший
         plugin.getPluginLogger().debug("Содержащий регион не найден, ищем ближайший");
         Region nearestRegion = plugin.getRegionManager().findNearestRegion(location);
+        
         if (nearestRegion != null) {
-            plugin.getPluginLogger().debug("Найден ближайший регион " + nearestRegion.getId() + 
-                " для локации " + location.getBlockX() + ", " + location.getBlockZ());
+            // Проверим, не слишком ли далеко найденный регион
+            double distance = nearestRegion.distanceToCenter(location);
+            int regionRadius = nearestRegion.getSize() / 2;
+            int maxDistance = plugin.getConfig().getInt("regions.check-distance", 128);
+            
+            // Если регион слишком далеко, не используем его
+            if (distance > (regionRadius + maxDistance)) {
+                plugin.getPluginLogger().debug("Ближайший регион " + nearestRegion.getId() + 
+                    " слишком далеко (расстояние: " + String.format("%.1f", distance) + 
+                    ", максимальное: " + (regionRadius + maxDistance) + ")");
+                return null;
+            }
+            
+            plugin.getPluginLogger().debug("Найден подходящий ближайший регион " + nearestRegion.getId() + 
+                " для локации " + location.getBlockX() + ", " + location.getBlockZ() + 
+                " (расстояние: " + String.format("%.1f", distance) + ")");
         } else {
             plugin.getPluginLogger().debug("Ближайший регион не найден");
         }

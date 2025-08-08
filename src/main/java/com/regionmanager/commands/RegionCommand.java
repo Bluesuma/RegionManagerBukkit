@@ -92,6 +92,13 @@ public class RegionCommand implements CommandExecutor, TabCompleter {
                     sender.sendMessage("§cИспользование: /region test <игрок>");
                 }
                 break;
+            case "analyze":
+                if (args.length > 1) {
+                    analyzeRegionLogic(sender, args[1]);
+                } else {
+                    sender.sendMessage("§cИспользование: /region analyze <игрок>");
+                }
+                break;
             default:
                 showHelp(sender);
                 break;
@@ -114,6 +121,7 @@ public class RegionCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.YELLOW + "/region unload <id_региона> - Принудительно выгрузить регион");
         sender.sendMessage(ChatColor.YELLOW + "/region debug <игрок> - Отладка региона игрока");
         sender.sendMessage(ChatColor.YELLOW + "/region test <игрок> - Тестирование логики регионов");
+        sender.sendMessage(ChatColor.YELLOW + "/region analyze <игрок> - Детальный анализ региона игрока");
         sender.sendMessage(ChatColor.YELLOW + "/region toggle-debug - Переключить отладку");
     }
     
@@ -507,6 +515,38 @@ public class RegionCommand implements CommandExecutor, TabCompleter {
         } else {
             sender.sendMessage(ChatColor.RED + "Не удалось создать регион для игрока " + playerName);
         }
+    }
+
+    /**
+     * Анализ логики распределения регионов
+     */
+    private void analyzeRegionLogic(CommandSender sender, String playerName) {
+        if (!sender.hasPermission("regionmanager.admin")) {
+            sender.sendMessage(ChatColor.RED + "У вас нет прав для выполнения этой команды");
+            return;
+        }
+
+        Player targetPlayer = plugin.getServer().getPlayer(playerName);
+        if (targetPlayer == null) {
+            sender.sendMessage(ChatColor.RED + "Игрок " + playerName + " не найден");
+            return;
+        }
+
+        Region region = plugin.getRegionManager().getPlayerRegion(targetPlayer);
+        if (region == null) {
+            sender.sendMessage(ChatColor.YELLOW + "Игрок " + playerName + " не находится в регионе");
+            return;
+        }
+
+        sender.sendMessage(ChatColor.GOLD + "=== Анализ Региона " + region.getId() + " ===");
+        sender.sendMessage(ChatColor.YELLOW + "Центр: " + ChatColor.WHITE + 
+            region.getCenter().getWorld().getName() + " (" + region.getCenter().getBlockX() + ", " + region.getCenter().getBlockZ() + ")");
+        sender.sendMessage(ChatColor.YELLOW + "Размер: " + ChatColor.WHITE + region.getSize() + " блоков");
+        sender.sendMessage(ChatColor.YELLOW + "Игроков в регионе: " + ChatColor.WHITE + region.getPlayerCount());
+        sender.sendMessage(ChatColor.YELLOW + "Активен: " + ChatColor.WHITE + region.isActive());
+        sender.sendMessage(ChatColor.YELLOW + "Принудительный: " + ChatColor.WHITE + region.isForcedRegion());
+        sender.sendMessage(ChatColor.YELLOW + "Последнее обновление: " + ChatColor.WHITE + 
+            (System.currentTimeMillis() - region.getLastActivityTime()) / 1000 + " секунд назад");
     }
 
     @Override
