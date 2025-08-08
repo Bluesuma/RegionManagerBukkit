@@ -56,23 +56,13 @@ public class RegionManager {
         // Сначала попробуем найти существующий регион
         Region existingRegion = findNearestRegion(playerLocation);
         
-        // Проверить, подходит ли найденный регион
-        if (existingRegion != null && existingRegion.canAcceptPlayers()) {
-            // Проверить, не слишком ли далеко игрок от центра региона
-            double distanceToCenter = existingRegion.distanceToCenter(playerLocation);
-            int maxDistance = regionSize / 2; // Половина размера региона
-            
-            if (distanceToCenter <= maxDistance) {
-                logger.debug("Игрок " + player.getName() + " остается в регионе " + existingRegion.getId() + 
-                    " (расстояние до центра: " + String.format("%.1f", distanceToCenter) + " блоков)");
-                return existingRegion;
-            } else {
-                logger.info("Игрок " + player.getName() + " слишком далеко от региона " + existingRegion.getId() + 
-                    " (расстояние: " + String.format("%.1f", distanceToCenter) + " > " + maxDistance + " блоков)");
-            }
+        // Если найден регион и игрок в нем, используем его
+        if (existingRegion != null && existingRegion.contains(playerLocation)) {
+            logger.debug("Игрок " + player.getName() + " найден в регионе " + existingRegion.getId());
+            return existingRegion;
         }
         
-        // Если нет подходящего региона или игрок слишком далеко, создаем новый
+        // Если нет подходящего региона, создаем новый
         logger.info("Создание нового региона для игрока " + player.getName() + " в " + playerLocation);
         return createNewRegion(playerLocation);
     }
@@ -89,16 +79,35 @@ public class RegionManager {
                 continue;
             }
             
+            // Сначала проверим, находится ли игрок в пределах региона
+            if (region.contains(location)) {
+                logger.debug("Игрок находится в регионе " + region.getId());
+                return region;
+            }
+            
+            // Если не в регионе, найдем ближайший
             double distance = region.distanceToCenter(location);
-            if (distance < minDistance) {
+            
+            // Проверим, не слишком ли далеко регион
+            int regionRadius = region.getSize() / 2;
+            int checkDistance = plugin.getConfig().getInt("regions.check-distance", 128);
+            
+            // Если игрок в пределах разумного расстояния от региона
+            if (distance <= (regionRadius + checkDistance) && distance < minDistance) {
                 minDistance = distance;
                 nearestRegion = region;
+                logger.debug("Найден подходящий регион " + region.getId() + 
+                    " на расстоянии " + String.format("%.1f", distance) + " блоков");
             }
         }
         
         if (nearestRegion != null) {
-            logger.debug("Найден ближайший регион " + nearestRegion.getId() + 
-                " на расстоянии " + String.format("%.1f", minDistance) + " блоков");
+            logger.debug("Выбран ближайший регион " + nearestRegion.getId() + 
+                " на расстоянии " + String.format("%.1f", minDistance) + " блоков от " + 
+                location.getBlockX() + ", " + location.getBlockZ());
+        } else {
+            logger.debug("Не найден подходящий регион для локации " + 
+                location.getBlockX() + ", " + location.getBlockZ());
         }
         
         return nearestRegion;
@@ -404,6 +413,9 @@ public class RegionManager {
         return plugin;
     }
     
+    /**
+     * Получить все регионы
+     */
     public Map<String, Region> getRegions() {
         return new HashMap<>(regions);
     }

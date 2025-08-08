@@ -14,8 +14,8 @@ regions:
   size: 512
   # Максимальное количество игроков в регионе
   max-players-per-region: 20
-  # Расстояние проверки смены региона (в блоках)
-  check-distance: 64
+  # Расстояние проверки смены региона (в блоках) - увеличено для лучшего обнаружения
+  check-distance: 128
   # Автоматическое создание регионов при перемещении игроков
   auto-create: true
   # Объединение близких регионов
@@ -67,11 +67,11 @@ logging:
 # Настройки отладки
 debug:
   # Показывать информацию о регионах игрокам
-  show-region-info: false
+  show-region-info: true
   # Показывать границы регионов
   show-region-borders: false
   # Детальное логирование
-  verbose-logging: false
+  verbose-logging: true
 
 # Настройки команд
 commands:
@@ -82,4 +82,13 @@ commands:
   # Разрешить команду /region list
   region-list: true
   # Разрешить команду /region optimize
-  region-optimize: true 
+  region-optimize: true
+
+# Настройки сна игроков
+sleep:
+  # Предотвращать смену региона при сне/пробуждении
+  prevent-region-change: true
+  # Расстояние для расширения региона при пробуждении (множитель от размера региона)
+  expansion-multiplier: 1.5
+  # Дополнительный запас при расширении региона (в блоках)
+  expansion-buffer: 16 
