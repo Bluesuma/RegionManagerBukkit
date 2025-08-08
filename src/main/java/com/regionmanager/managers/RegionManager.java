@@ -147,12 +147,9 @@ public class RegionManager {
         int x = playerLocation.getBlockX();
         int z = playerLocation.getBlockZ();
         
-        // Округлить координаты до размера региона
-        int regionX = (x / regionSize) * regionSize + regionSize / 2;
-        int regionZ = (z / regionSize) * regionSize + regionSize / 2;
-        
-        // Проверить, не слишком ли близко к другим регионам
-        Location candidateCenter = new Location(world, regionX, 64, regionZ);
+        // Используем позицию игрока как центр региона
+        // Это предотвращает проблемы с округлением на границах
+        Location candidateCenter = new Location(world, x, 64, z);
         
         // Проверить расстояние до существующих регионов
         boolean tooClose = false;
@@ -173,7 +170,7 @@ public class RegionManager {
             // Попробуем несколько вариантов смещения
             int[] offsets = {regionSize, regionSize * 2, -regionSize, -regionSize * 2};
             for (int offset : offsets) {
-                Location newCenter = new Location(world, regionX + offset, 64, regionZ + offset);
+                Location newCenter = new Location(world, x + offset, 64, z + offset);
                 boolean valid = true;
                 
                 for (Region existingRegion : regions.values()) {
